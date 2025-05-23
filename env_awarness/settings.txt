@@ -1,0 +1,4 @@
+python=3.10
+pip install numpy
+pip install pyrealsense2
+pip intsall opencv-python
