@@ -11,26 +11,25 @@ import numpy as np
 import cv2
 
 def main():
-    # ─── 1) 설정 ─────────────────────────────────────────────────────────
-    CAMERA_HEIGHT = 0.13    # m
-    PIXEL_OFFSET  = 60      # 화면 하단에서 위로 60px (≈300 mm 전방)
-    STEP_THRESH   = 0.05    # 턱 감지 임계: 50 mm
-    ROI_HALF_W    = 10      # ROI 너비: 중앙 ±10px
-    SKIP_FRAMES   = 5       # 5프레임에 1번만 무거운 연산
+    # 1) 상수 설정
+    CAMERA_HEIGHT = 0.13 # 지상으로부터 카메라의 높이(m)
+    PIXEL_OFFSET = 60 # 전방 300mm의 장애물을 확인하기 위한 경험 값. 화면 하단에서 60px 위가 전방 300mm라고 가정.
+    STEP_THRESH = 0.05 # 턱 감지 임계값: 50 mm
+    ROI_HALF_W = 10 # ROI 너비: 중앙 ±10px
+    SKIP_FRAMES = 5 # 5프레임에 1번만 무거운 연산
 
-    # RealSense 초기화 (15fps로 낮춤)
+    # 2) RealSense 초기화 (15fps로 낮춤)
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.depth,  640, 480, rs.format.z16, 15)
     config.enable_stream(rs.stream.color,  640, 480, rs.format.bgr8, 15)
     profile = pipeline.start(config)
     align = rs.align(rs.stream.color)
-    # ─────────────────────────────────────────────────────────────────────
 
     frame_idx = 0
     try:
         while True:
-            # 매 프레임 수신
+            # 3) 매 프레임 수신
             frames = pipeline.wait_for_frames()
             aligned = align.process(frames)
             depth_frame = aligned.get_depth_frame()
@@ -44,17 +43,17 @@ def main():
             y_ground= h - 10
             y_front = max(0, y_ground - PIXEL_OFFSET)
 
-            # 화면 데이터 변환
+            # 4) 화면 데이터 변환
             depth_img = np.asanyarray(depth_frame.get_data())
             color_img = np.asanyarray(color_frame.get_data())
 
-            # 무거운 ROI→3D 연산은 SKIP_FRAMES 주기로만 수행
+            # 5) 무거운 ROI -> 3D 연산은 SKIP_FRAMES 주기로만 수행
             if frame_idx % SKIP_FRAMES == 0:
                 intrin = depth_frame.get_profile() \
                                     .as_video_stream_profile() \
                                     .get_intrinsics()
 
-                # ROI 스캔해서 높이 중간값 구하기
+                # ROI 스캔해서 장애물 높이의 중간값 구하기
                 heights = []
                 for dx in range(-ROI_HALF_W, ROI_HALF_W+1):
                     x = cx + dx
@@ -85,7 +84,7 @@ def main():
                               (255,0,0), 1)
                 cv2.circle(color_img, (cx, y_front), 3, (0,255,0), -1)
 
-            # 매 프레임: 컬러맵 적용 & 화면 출력
+            # 6) 매 프레임: 컬러맵 적용 & 화면 출력
             depth_cm = cv2.applyColorMap(
                 cv2.convertScaleAbs(depth_img, alpha=0.1),
                 cv2.COLORMAP_JET
@@ -93,7 +92,7 @@ def main():
             vis = np.hstack((color_img, depth_cm))
             cv2.imshow("RealSense", vis)
 
-            # 종료
+            # 7) 종료
             if cv2.waitKey(1) == 27:
                 break
 
