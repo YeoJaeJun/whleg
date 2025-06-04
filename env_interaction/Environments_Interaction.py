@@ -86,7 +86,7 @@ def main():
 
             # 6) 매 프레임: 컬러맵 적용 & 화면 출력
             depth_cm = cv2.applyColorMap(
-                cv2.convertScaleAbs(depth_img, alpha=0.1),
+                cv2.convertScaleAbs(depth_img, alpha=0.3),
                 cv2.COLORMAP_JET
             )
             vis = np.hstack((color_img, depth_cm))
